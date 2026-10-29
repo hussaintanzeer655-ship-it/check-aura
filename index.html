@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aura Check – what’s your aura score?</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#efeafe;--ink:#1a1040;--soft:#5b5380;--card:#fff;--pink:#e0359a;--gold:#ffb81f;--line:#d6cdf5;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#150d33;--ink:#f3eeff;--soft:#a79ed0;--card:#221748;--line:#3a2d70}}
+:root[data-theme="dark"]{--bg:#150d33;--ink:#f3eeff;--soft:#a79ed0;--card:#221748;--line:#3a2d70}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh;display:flex;justify-content:center}
+main{width:100%;max-width:520px;padding:28px 20px 48px}
+h1{font-size:clamp(44px,13vw,72px);line-height:.95;margin:8px 0 14px;font-weight:800;letter-spacing:-.03em}
+p{line-height:1.5;margin:0 0 14px;color:var(--soft);font-size:17px}
+button{font:inherit;cursor:pointer}
+.btn{display:block;width:100%;border:0;border-radius:16px;background:var(--ink);color:var(--bg);padding:16px 20px;font-weight:700;font-size:18px}
+.btn.alt{background:transparent;color:var(--ink);border:2px solid var(--ink);margin-top:10px}
+.btn:focus-visible,.opt:focus-visible{outline:3px solid var(--pink);outline-offset:3px}
+.orb{width:min(70vw,260px);aspect-ratio:1;border-radius:50%;margin:26px auto;background:radial-gradient(circle at 35% 30%,#fff8,transparent 40%),conic-gradient(from 0deg,#e0359a,#ffb81f,#37d6c5,#7a5cff,#e0359a);filter:blur(.3px);box-shadow:0 0 60px 10px #e0359a55;animation:spin 14s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.orb{animation:none}}
+.banner{background:var(--gold);color:#1a1040;border-radius:14px;padding:12px 14px;font-weight:700;margin-bottom:16px}
+.bar{height:8px;border-radius:8px;background:var(--line);margin:6px 0 24px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--pink);transition:width .3s}
+.q{font-size:26px;font-weight:800;line-height:1.15;margin:0 0 18px;letter-spacing:-.01em}
+.opt{display:block;width:100%;text-align:left;background:var(--card);color:var(--ink);border:2px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px;font-size:17px}
+.opt:hover{border-color:var(--pink)}
+.score{font-size:clamp(80px,26vw,128px);font-weight:800;letter-spacing:-.05em;line-height:1;margin:0}
+.tier{font-size:28px;font-weight:800;margin:4px 0 10px}
+.ring{display:grid;place-items:center;text-align:center;border-radius:28px;padding:28px 18px;margin:8px 0 18px;color:#fff;background:var(--c1)}
+.ring p{color:#ffffffde;margin:0}
+.hide{display:none}
+img.share{width:100%;border-radius:16px;margin-top:14px;border:1px solid var(--line)}
+.small{font-size:14px;text-align:center;margin-top:16px}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:99px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<main>
+ <section id="home">
+  <div id="banner" class="banner hide"></div>
+  <h1>What’s your aura?</h1>
+  <p>Eight questions. One score out of 1000. Send it to a friend and see who wins.</p>
+  <div class="orb" aria-hidden="true"></div>
+  <button class="btn" id="start">Check my aura</button>
+ </section>
+ <section id="quiz" class="hide">
+  <div class="bar"><i id="prog"></i></div>
+  <h2 class="q" id="qt"></h2>
+  <div id="opts"></div>
+ </section>
+ <section id="result" class="hide">
+  <div class="ring" id="ring">
+   <p>Your aura</p>
+   <p class="score" id="sc"></p>
+   <p class="tier" id="tier" style="color:#fff"></p>
+   <p id="roast"></p>
+  </div>
+  <div id="vs" class="banner hide"></div>
+  <button class="btn" id="share">Challenge a friend</button>
+  <button class="btn alt" id="copy">Copy my result</button>
+  <button class="btn alt" id="again">Retake the test</button>
+  <img id="card" class="share" alt="Your aura result card" hidden>
+  <p class="small">Press and hold the card to save it.</p>
+ </section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+<script>
+(function(){
+var Q=[
+["Your friend group chat goes silent after you send a joke. You…",["Send another one. Confidence is a lifestyle.","Pretend it was a typo and move on.","Leave the chat for six hours.","Laugh at it yourself, loudly."]],
+["Walking into a room full of strangers, you…",["Walk in like you own the building.","Find the snack table and stay near it.","Check your phone for 40 minutes.","Wave at someone who wasn’t waving at you."]],
+["It’s 2 a.m. and you’re awake. You’re most likely…",["Planning something great.","Rewatching the same show again.","Replaying an awkward moment from 2016.","Scrolling until your thumb hurts."]],
+["You get left on read. Your move?",["Don’t care. Next.","Wait exactly one day, then follow up.","Draft six replies and send none.","Post a cryptic story instead."]],
+["Pick your walk-in song.",["Something with a slow, heavy bass drop.","Whatever is trending right now.","A song only you know.","Silence. Pure silence."]],
+["Someone cuts in front of you in line. You…",["Smile and let them. Their problem now.","Say something polite but firm.","Quietly seethe for the rest of the day.","Tell the whole story to everyone later."]],
+["Your last big win was…",["Proof that I always had it.","Mostly luck, but I’ll take it.","Something I haven’t told anyone about.","I’m still waiting for it."]],
+["Your photo roll is mostly…",["Friends, food and good lighting.","Screenshots of things I’ll never read.","Blurry nights out.","Photos of my pets and plants."]]
+];
+var W=[[125,60,15,80],[125,70,10,50],[110,80,30,40],[125,95,35,60],[120,55,85,30],[120,85,30,60],[125,70,60,25],[115,60,45,80]];
+var TIERS=[
+[900,"Legendary aura","People feel you before they see you. Use this power responsibly.","#7a5cff"],
+[740,"Main character","The room rearranges itself around you. Nobody voted on it.","#e0359a"],
+[580,"Solid aura","Steady, warm and quietly impressive. People trust you at once.","#0f9d8a"],
+[420,"Mid aura","You’re one good story away from a glow-up.","#d9822b"],
+[0,"Aura debt","Rough, but fixable. Say yes to one brave thing this week.","#5b4bb5"]];
+var $=function(i){return document.getElementById(i)};
+var cur=0,total=0,final=0;
+function show(id){["home","quiz","result"].forEach(function(s){$(s).classList.toggle("hide",s!==id)});window.scrollTo(0,0)}
+function toast(t){var e=$("toast");e.textContent=t;e.classList.add("on");setTimeout(function(){e.classList.remove("on")},1800)}
+function challenge(){var m=/^#beat-(\d{2,4})$/.exec(location.hash);return m?+m[1]:null}
+function init(){var c=challenge();if(c){var b=$("banner");b.textContent="A friend scored "+c+". Think you can beat it?";b.classList.remove("hide")}show("home")}
+function ask(){
+ $("prog").style.width=(cur/Q.length*100)+"%";
+ $("qt").textContent=Q[cur][0];
+ var h=$("opts");h.innerHTML="";
+ Q[cur][1].forEach(function(t,i){
+  var b=document.createElement("button");b.className="opt";b.textContent=t;
+  b.onclick=function(){total+=W[cur][i];cur++;cur<Q.length?ask():finish()};
+  h.appendChild(b)});
+}
+function tierOf(s){for(var i=0;i<TIERS.length;i++)if(s>=TIERS[i][0])return TIERS[i]}
+function finish(){
+ var max=0,min=0;W.forEach(function(r){max+=Math.max.apply(null,r);min+=Math.min.apply(null,r)});
+ final=Math.round(100+(total-min)/(max-min)*880);
+ var t=tierOf(final);
+ $("sc").textContent=final;$("tier").textContent=t[1];$("roast").textContent=t[2];
+ $("ring").style.setProperty("--c1",t[3]);
+ var c=challenge(),v=$("vs");
+ if(c){v.classList.remove("hide");v.textContent=final>c?"You beat your friend’s "+c+" by "+(final-c)+" points.":final===c?"A perfect tie with your friend’s "+c+".":"Your friend’s "+c+" beats you by "+(c-final)+" points."}
+ else v.classList.add("hide");
+ drawCard(t);show("result");
+}
+function wrap(ctx,text,x,y,w,lh){var words=text.split(" "),line="";words.forEach(function(wd){var test=line+wd+" ";if(ctx.measureText(test).width>w&&line){ctx.fillText(line,x,y);line=wd+" ";y+=lh}else line=test});ctx.fillText(line,x,y)}
+function drawCard(t){
+ var c=document.createElement("canvas");c.width=1080;c.height=1350;var x=c.getContext("2d");
+ var g=x.createLinearGradient(0,0,1080,1350);g.addColorStop(0,t[3]);g.addColorStop(1,"#1a1040");x.fillStyle=g;x.fillRect(0,0,1080,1350);
+ var r=x.createRadialGradient(540,520,20,540,520,420);r.addColorStop(0,"rgba(255,255,255,.35)");r.addColorStop(1,"rgba(255,255,255,0)");x.fillStyle=r;x.fillRect(0,0,1080,1350);
+ x.fillStyle="#fff";x.textAlign="center";
+ var ff='"Bricolage Grotesque",system-ui,sans-serif';
+ x.font="700 44px "+ff;x.fillText("My aura score",540,170);
+ x.font="800 400px "+ff;x.fillText(String(final),540,590);
+ x.font="800 82px "+ff;x.fillText(t[1],540,730);
+ x.font="500 42px "+ff;wrap(x,t[2],540,830,820,58);
+ x.font="700 46px "+ff;x.fillText("Can you beat "+final+"?",540,1190);
+ x.font="500 34px "+ff;x.fillText("Take the Aura Check",540,1250);
+ $("card").src=c.toDataURL("image/png");$("card").hidden=false;
+}
+function link(){return location.href.split("#")[0]+"#beat-"+final}
+function text(){return "My aura score is "+final+"/1000 ("+tierOf(final)[1]+"). Think you can beat it? "+link()}
+$("start").onclick=function(){cur=0;total=0;show("quiz");ask()};
+$("again").onclick=function(){cur=0;total=0;show("quiz");ask()};
+$("share").onclick=function(){
+ if(navigator.share){navigator.share({title:"Aura Check",text:"My aura score is "+final+"/1000. Beat it?",url:link()}).catch(function(){})}
+ else copy()};
+function copy(){
+ var t=text();
+ try{navigator.clipboard.writeText(t).then(function(){toast("Copied. Paste it anywhere.")},function(){toast("Copy failed. Select the text manually.")})}
+ catch(e){toast("Copy isn’t available here.")}
+}
+$("copy").onclick=copy;
+window.addEventListener("hashchange",init);
+init();
+})();
+</script>
+</body>
+</html>
